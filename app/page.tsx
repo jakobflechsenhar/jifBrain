@@ -36,7 +36,7 @@ export default function AuthPage() {
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-2" style={{ color: '#4ade80' }}>
-          MemoryBase
+          jifBrain
         </h1>
         <p className="text-center text-sm mb-8 opacity-60">
           {isSignUp ? 'Create your account' : 'Welcome back'}

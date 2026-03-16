@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MemoryBase",
+  title: "jifBrain",
   description: "Your personal spaced repetition study app",
 };
 
