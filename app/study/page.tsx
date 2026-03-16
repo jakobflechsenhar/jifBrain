@@ -303,15 +303,9 @@ export default function StudyPage() {
   function handleSwipe(e: React.TouchEvent) {
     const dx = e.changedTouches[0].clientX - touchStart.x
     const dy = e.changedTouches[0].clientY - touchStart.y
-    const absDx = Math.abs(dx)
-    const absDy = Math.abs(dy)
-
-    if (absDx > 50 && absDx > absDy) {
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) { setIndex(i => (i + 1 >= cards.length ? 0 : i + 1)); setFlipped(false) }
       else { setIndex(i => (i - 1 < 0 ? cards.length - 1 : i - 1)); setFlipped(false) }
-    } else if (absDy > 40 && absDy > absDx) {
-      if (dy < 0 && !flipped) setFlipped(true)   // swipe up → flip
-      else if (dy > 0 && flipped) setFlipped(false) // swipe down → unflip
     }
   }
 
@@ -356,7 +350,7 @@ export default function StudyPage() {
         <div className="flex gap-2">
           <button
             onClick={() => { setEditQuestion(card.question); setEditAnswer(card.answer); setEditOpen(true) }}
-            className="text-sm px-2 py-1 rounded-lg transition-opacity opacity-40 hover:opacity-70"
+            className="text-sm px-2 py-1 rounded-lg transition-opacity"
             style={{ backgroundColor: '#ffffff15' }}
           >✏️</button>
           <button
