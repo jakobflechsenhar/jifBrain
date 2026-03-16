@@ -24,6 +24,9 @@ Auto-deploys from GitHub on every push. Environment variables (Supabase keys, An
 **Spaced Repetition: SM-2 Algorithm**
 The same algorithm used by Anki. After each card review you rate yourself 👎 / 😐 / 👍 and the algorithm adjusts the card's next review date and difficulty. Implemented in `lib/sm2.ts`.
 
+**PWA (Progressive Web App)**
+A `manifest.json` and service worker (`public/sw.js`) make the app installable on iPhone and Android directly from the browser — no App Store needed. Once installed it gets its own home screen icon, launches fullscreen, and caches assets for basic offline support.
+
 **Streak System**
 Daily study goal of 10 cards extends your streak. Two freeze credits per week automatically cover missed days (up to 2 days). Visualised in a monthly calendar view at `/streak`.
 
