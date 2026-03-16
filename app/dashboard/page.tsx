@@ -101,12 +101,10 @@ export default function Dashboard() {
         <button onClick={() => router.push('/cards')} className="rounded-2xl p-5 text-left transition-opacity hover:opacity-80" style={{ backgroundColor: '#1a2e1f' }}>
           <p className="text-xl mb-1">🃏</p>
           <p className="font-semibold">My Cards</p>
-          <p className="text-sm opacity-40">Add & manage</p>
         </button>
         <button onClick={() => router.push('/topics')} className="rounded-2xl p-5 text-left transition-opacity hover:opacity-80" style={{ backgroundColor: '#1a2e1f' }}>
           <p className="text-xl mb-1">📚</p>
           <p className="font-semibold">Topics</p>
-          <p className="text-sm opacity-40">Browse & filter</p>
         </button>
       </div>
     </main>

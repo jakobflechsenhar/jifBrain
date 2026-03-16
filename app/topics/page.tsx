@@ -203,7 +203,7 @@ export default function TopicsPage() {
             return (
               <div key={topic.id} className="rounded-2xl p-5" style={{ backgroundColor: '#1a2e1f' }}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="font-semibold">{topic.name}</p>
+                  <button onClick={() => router.push(`/topics/${topic.id}`)} className="font-semibold hover:opacity-70 text-left" style={{ color: '#4ade80' }}>{topic.name}</button>
                   <span className="text-xs opacity-40">{count} {count === 1 ? 'card' : 'cards'}</span>
                 </div>
 
