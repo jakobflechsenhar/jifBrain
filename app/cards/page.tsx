@@ -19,6 +19,47 @@ type Topic = {
   name: string
 }
 
+function ImageField({
+  label, value, onChange, placeholder, rows = 3, imagePreview, onImagePick, onImageRemove,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  rows?: number
+  imagePreview: string | null
+  onImagePick: (f: File) => void
+  onImageRemove: () => void
+}) {
+  const inputId = `img-${label}`
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#ffffff18', backgroundColor: '#ffffff0d' }}>
+      <textarea
+        value={value} onChange={e => onChange(e.target.value)} required rows={rows}
+        placeholder={placeholder}
+        className="w-full px-4 pt-3 pb-2 bg-transparent text-white placeholder-white/40 focus:outline-none resize-none"
+      />
+      <div className="flex items-center gap-2 px-3 pb-2 pt-1" style={{ borderTop: '1px solid #ffffff12' }}>
+        <label htmlFor={inputId} className="cursor-pointer text-base leading-none" style={{ opacity: imagePreview ? 1 : 0.35 }} title={`Add ${label} image`}>
+          📷
+          <input id={inputId} type="file" accept="image/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) onImagePick(f) }} />
+        </label>
+        {imagePreview && (
+          <div className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 48, height: 32 }}>
+            <Image src={imagePreview} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
+            <button type="button" onClick={onImageRemove}
+              className="absolute inset-0 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity text-xs font-bold"
+              style={{ backgroundColor: '#00000088' }}>
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 async function uploadImage(file: File, userId: string, cardId: string, side: 'question' | 'answer'): Promise<string | null> {
   const supabase = createClient()
   const ext = file.name.split('.').pop()
@@ -226,53 +267,18 @@ export default function CardsPage() {
         </div>
 
         <form onSubmit={handleEditCard} className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Question</p>
-            <textarea value={editQuestion} onChange={e => setEditQuestion(e.target.value)} required rows={2}
-              placeholder="Question"
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
-            {editQImagePreview && !editRemoveQImage ? (
-              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
-                <Image src={editQImagePreview} alt="question image" fill style={{ objectFit: 'cover' }} unoptimized={editQImagePreview.startsWith('blob:')} />
-                <button type="button" onClick={() => { setEditRemoveQImage(true); setEditQImagePreview(null) }}
-                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
-                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
-                style={{ backgroundColor: '#ffffff10' }}>
-                📷 {editRemoveQImage ? 'Add image' : (editingCard.question_image_url ? 'Replace image' : 'Add image')}
-                <input type="file" accept="image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setEditQImageFile(f); setEditQImagePreview(URL.createObjectURL(f)); setEditRemoveQImage(false) } }} />
-              </label>
-            )}
-          </div>
-
-          <div>
-            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Answer</p>
-            <textarea value={editAnswer} onChange={e => setEditAnswer(e.target.value)} required rows={3}
-              placeholder="Answer"
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
-            {editAImagePreview && !editRemoveAImage ? (
-              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
-                <Image src={editAImagePreview} alt="answer image" fill style={{ objectFit: 'cover' }} unoptimized={editAImagePreview.startsWith('blob:')} />
-                <button type="button" onClick={() => { setEditRemoveAImage(true); setEditAImagePreview(null) }}
-                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
-                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
-                style={{ backgroundColor: '#ffffff10' }}>
-                📷 {editRemoveAImage ? 'Add image' : (editingCard.answer_image_url ? 'Replace image' : 'Add image')}
-                <input type="file" accept="image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setEditAImageFile(f); setEditAImagePreview(URL.createObjectURL(f)); setEditRemoveAImage(false) } }} />
-              </label>
-            )}
-          </div>
+          <ImageField
+            label="Question" value={editQuestion} onChange={setEditQuestion} placeholder="Question" rows={2}
+            imagePreview={editRemoveQImage ? null : editQImagePreview}
+            onImagePick={f => { setEditQImageFile(f); setEditQImagePreview(URL.createObjectURL(f)); setEditRemoveQImage(false) }}
+            onImageRemove={() => { setEditRemoveQImage(true); setEditQImagePreview(null) }}
+          />
+          <ImageField
+            label="Answer" value={editAnswer} onChange={setEditAnswer} placeholder="Answer" rows={3}
+            imagePreview={editRemoveAImage ? null : editAImagePreview}
+            onImagePick={f => { setEditAImageFile(f); setEditAImagePreview(URL.createObjectURL(f)); setEditRemoveAImage(false) }}
+            onImageRemove={() => { setEditRemoveAImage(true); setEditAImagePreview(null) }}
+          />
 
           {topics.length > 0 && (
             <div>
@@ -315,53 +321,18 @@ export default function CardsPage() {
         <form onSubmit={handleAddCard} className="rounded-2xl p-5 mb-6" style={{ backgroundColor: '#1a2e1f' }}>
           <h2 className="font-semibold mb-4">New Card</h2>
 
-          <div className="mb-3">
-            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Question</p>
-            <textarea placeholder="Question" value={question} onChange={e => setQuestion(e.target.value)}
-              required rows={2}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
-            {qImagePreview ? (
-              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
-                <Image src={qImagePreview} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
-                <button type="button" onClick={() => { setQImageFile(null); setQImagePreview(null) }}
-                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
-                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
-                style={{ backgroundColor: '#ffffff10' }}>
-                📷 Add image (optional)
-                <input type="file" accept="image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setQImageFile(f); setQImagePreview(URL.createObjectURL(f)) } }} />
-              </label>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Answer</p>
-            <textarea placeholder="Answer" value={answer} onChange={e => setAnswer(e.target.value)}
-              required rows={3}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
-            {aImagePreview ? (
-              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
-                <Image src={aImagePreview} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
-                <button type="button" onClick={() => { setAImageFile(null); setAImagePreview(null) }}
-                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
-                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
-                style={{ backgroundColor: '#ffffff10' }}>
-                📷 Add image (optional)
-                <input type="file" accept="image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setAImageFile(f); setAImagePreview(URL.createObjectURL(f)) } }} />
-              </label>
-            )}
-          </div>
+          <ImageField
+            label="Question" value={question} onChange={setQuestion} placeholder="Question" rows={2}
+            imagePreview={qImagePreview}
+            onImagePick={f => { setQImageFile(f); setQImagePreview(URL.createObjectURL(f)) }}
+            onImageRemove={() => { setQImageFile(null); setQImagePreview(null) }}
+          />
+          <ImageField
+            label="Answer" value={answer} onChange={setAnswer} placeholder="Answer" rows={3}
+            imagePreview={aImagePreview}
+            onImagePick={f => { setAImageFile(f); setAImagePreview(URL.createObjectURL(f)) }}
+            onImageRemove={() => { setAImageFile(null); setAImagePreview(null) }}
+          />
 
           {topics.length > 0 && (
             <div className="mb-4">
