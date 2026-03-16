@@ -145,25 +145,20 @@ export default function CardsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const cardId = crypto.randomUUID()
+
+    const [questionImageUrl, answerImageUrl] = await Promise.all([
+      qImageFile ? uploadImage(qImageFile, user.id, cardId, 'question') : Promise.resolve(null),
+      aImageFile ? uploadImage(aImageFile, user.id, cardId, 'answer') : Promise.resolve(null),
+    ])
+
     const { data: card, error: cardError } = await supabase
       .from('cards')
-      .insert({ user_id: user.id, question, answer })
+      .insert({ id: cardId, user_id: user.id, question, answer, question_image_url: questionImageUrl, answer_image_url: answerImageUrl })
       .select()
       .single()
 
     if (cardError) { setError(cardError.message); setSaving(false); return }
-
-    const [questionImageUrl, answerImageUrl] = await Promise.all([
-      qImageFile ? uploadImage(qImageFile, user.id, card.id, 'question') : Promise.resolve(null),
-      aImageFile ? uploadImage(aImageFile, user.id, card.id, 'answer') : Promise.resolve(null),
-    ])
-
-    if (questionImageUrl || answerImageUrl) {
-      await supabase.from('cards').update({
-        question_image_url: questionImageUrl,
-        answer_image_url: answerImageUrl,
-      }).eq('id', card.id)
-    }
 
     if (selectedTopics.length > 0) {
       await supabase.from('card_topics').insert(
