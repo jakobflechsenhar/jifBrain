@@ -99,7 +99,7 @@ export default function GeneratePage() {
 
     const json = await res.json()
     if (!res.ok || json.error) {
-      setError(json.error ?? 'Something went wrong. Try again.')
+      setError((json.error ?? 'Something went wrong.') + ' — You may need to top up API credits at console.anthropic.com/settings/billing')
       setGenerating(false)
       return
     }
