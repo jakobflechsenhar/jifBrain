@@ -10,7 +10,8 @@ type Card = {
   id: string
   question: string
   answer: string
-  image_url: string | null
+  question_image_url: string | null
+  answer_image_url: string | null
   ease_factor: number
   interval_days: number
   repetitions: number
@@ -66,7 +67,7 @@ export default function StudyPage() {
 
     let query = supabase
       .from('cards')
-      .select('id, question, answer, image_url, ease_factor, interval_days, repetitions')
+      .select('id, question, answer, question_image_url, answer_image_url, ease_factor, interval_days, repetitions')
       .eq('user_id', userId)
       .order('next_review_at')
 
@@ -334,9 +335,9 @@ export default function StudyPage() {
           <p className="text-xl leading-relaxed">
             {flipped ? card.answer : card.question}
           </p>
-          {card.image_url && (
+          {(flipped ? card.answer_image_url : card.question_image_url) && (
             <div className="mt-5 relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-              <Image src={card.image_url} alt="" fill style={{ objectFit: 'contain' }} unoptimized />
+              <Image src={(flipped ? card.answer_image_url : card.question_image_url)!} alt="" fill style={{ objectFit: 'contain' }} unoptimized />
             </div>
           )}
         </div>

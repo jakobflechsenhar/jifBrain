@@ -9,7 +9,8 @@ type Card = {
   id: string
   question: string
   answer: string
-  image_url: string | null
+  question_image_url: string | null
+  answer_image_url: string | null
   created_at: string
 }
 
@@ -18,10 +19,10 @@ type Topic = {
   name: string
 }
 
-async function uploadImage(file: File, userId: string, cardId: string): Promise<string | null> {
+async function uploadImage(file: File, userId: string, cardId: string, side: 'question' | 'answer'): Promise<string | null> {
   const supabase = createClient()
   const ext = file.name.split('.').pop()
-  const path = `${userId}/${cardId}.${ext}`
+  const path = `${userId}/${cardId}-${side}.${ext}`
   const { error } = await supabase.storage.from('card-images').upload(path, file, { upsert: true })
   if (error) return null
   const { data } = supabase.storage.from('card-images').getPublicUrl(path)
@@ -39,8 +40,10 @@ export default function CardsPage() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [qImageFile, setQImageFile] = useState<File | null>(null)
+  const [qImagePreview, setQImagePreview] = useState<string | null>(null)
+  const [aImageFile, setAImageFile] = useState<File | null>(null)
+  const [aImagePreview, setAImagePreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,9 +58,12 @@ export default function CardsPage() {
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [editTopics, setEditTopics] = useState<string[]>([])
-  const [editImageFile, setEditImageFile] = useState<File | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
-  const [editRemoveImage, setEditRemoveImage] = useState(false)
+  const [editQImageFile, setEditQImageFile] = useState<File | null>(null)
+  const [editQImagePreview, setEditQImagePreview] = useState<string | null>(null)
+  const [editRemoveQImage, setEditRemoveQImage] = useState(false)
+  const [editAImageFile, setEditAImageFile] = useState<File | null>(null)
+  const [editAImagePreview, setEditAImagePreview] = useState<string | null>(null)
+  const [editRemoveAImage, setEditRemoveAImage] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
 
   // Card topics map
@@ -89,11 +95,6 @@ export default function CardsPage() {
     setLoading(false)
   }
 
-  function handleImagePick(file: File, setFile: (f: File) => void, setPreview: (s: string) => void) {
-    setFile(file)
-    setPreview(URL.createObjectURL(file))
-  }
-
   async function handleAddCard(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
@@ -111,10 +112,16 @@ export default function CardsPage() {
 
     if (cardError) { setError(cardError.message); setSaving(false); return }
 
-    let imageUrl: string | null = null
-    if (imageFile) {
-      imageUrl = await uploadImage(imageFile, user.id, card.id)
-      if (imageUrl) await supabase.from('cards').update({ image_url: imageUrl }).eq('id', card.id)
+    const [questionImageUrl, answerImageUrl] = await Promise.all([
+      qImageFile ? uploadImage(qImageFile, user.id, card.id, 'question') : Promise.resolve(null),
+      aImageFile ? uploadImage(aImageFile, user.id, card.id, 'answer') : Promise.resolve(null),
+    ])
+
+    if (questionImageUrl || answerImageUrl) {
+      await supabase.from('cards').update({
+        question_image_url: questionImageUrl,
+        answer_image_url: answerImageUrl,
+      }).eq('id', card.id)
     }
 
     if (selectedTopics.length > 0) {
@@ -123,13 +130,15 @@ export default function CardsPage() {
       )
     }
 
-    setCards(prev => [{ ...card, image_url: imageUrl }, ...prev])
+    setCards(prev => [{ ...card, question_image_url: questionImageUrl, answer_image_url: answerImageUrl }, ...prev])
     setCardTopicsMap(prev => ({ ...prev, [card.id]: selectedTopics }))
     setQuestion('')
     setAnswer('')
     setSelectedTopics([])
-    setImageFile(null)
-    setImagePreview(null)
+    setQImageFile(null)
+    setQImagePreview(null)
+    setAImageFile(null)
+    setAImagePreview(null)
     setShowForm(false)
     setSaving(false)
   }
@@ -139,9 +148,12 @@ export default function CardsPage() {
     setEditQuestion(card.question)
     setEditAnswer(card.answer)
     setEditTopics(cardTopicsMap[card.id] ?? [])
-    setEditImageFile(null)
-    setEditImagePreview(card.image_url)
-    setEditRemoveImage(false)
+    setEditQImageFile(null)
+    setEditQImagePreview(card.question_image_url)
+    setEditRemoveQImage(false)
+    setEditAImageFile(null)
+    setEditAImagePreview(card.answer_image_url)
+    setEditRemoveAImage(false)
   }
 
   async function handleEditCard(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -153,13 +165,22 @@ export default function CardsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    let imageUrl = editRemoveImage ? null : editingCard.image_url
+    let questionImageUrl = editRemoveQImage ? null : editingCard.question_image_url
+    let answerImageUrl = editRemoveAImage ? null : editingCard.answer_image_url
 
-    if (editImageFile) {
-      imageUrl = await uploadImage(editImageFile, user.id, editingCard.id)
-    }
+    const [newQ, newA] = await Promise.all([
+      editQImageFile ? uploadImage(editQImageFile, user.id, editingCard.id, 'question') : Promise.resolve(null),
+      editAImageFile ? uploadImage(editAImageFile, user.id, editingCard.id, 'answer') : Promise.resolve(null),
+    ])
+    if (newQ) questionImageUrl = newQ
+    if (newA) answerImageUrl = newA
 
-    await supabase.from('cards').update({ question: editQuestion, answer: editAnswer, image_url: imageUrl }).eq('id', editingCard.id)
+    await supabase.from('cards').update({
+      question: editQuestion,
+      answer: editAnswer,
+      question_image_url: questionImageUrl,
+      answer_image_url: answerImageUrl,
+    }).eq('id', editingCard.id)
 
     await supabase.from('card_topics').delete().eq('card_id', editingCard.id)
     if (editTopics.length > 0) {
@@ -169,7 +190,7 @@ export default function CardsPage() {
     }
 
     setCards(prev => prev.map(c => c.id === editingCard.id
-      ? { ...c, question: editQuestion, answer: editAnswer, image_url: imageUrl }
+      ? { ...c, question: editQuestion, answer: editAnswer, question_image_url: questionImageUrl, answer_image_url: answerImageUrl }
       : c
     ))
     setCardTopicsMap(prev => ({ ...prev, [editingCard.id]: editTopics }))
@@ -205,19 +226,15 @@ export default function CardsPage() {
         </div>
 
         <form onSubmit={handleEditCard} className="flex flex-col gap-4">
-          <textarea value={editQuestion} onChange={e => setEditQuestion(e.target.value)} required rows={2}
-            placeholder="Question"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none" />
-          <textarea value={editAnswer} onChange={e => setEditAnswer(e.target.value)} required rows={3}
-            placeholder="Answer"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none" />
-
-          {/* Image section */}
           <div>
-            {editImagePreview && !editRemoveImage ? (
+            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Question</p>
+            <textarea value={editQuestion} onChange={e => setEditQuestion(e.target.value)} required rows={2}
+              placeholder="Question"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
+            {editQImagePreview && !editRemoveQImage ? (
               <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
-                <Image src={editImagePreview} alt="card image" fill style={{ objectFit: 'cover' }} />
-                <button type="button" onClick={() => { setEditRemoveImage(true); setEditImagePreview(null) }}
+                <Image src={editQImagePreview} alt="question image" fill style={{ objectFit: 'cover' }} unoptimized={editQImagePreview.startsWith('blob:')} />
+                <button type="button" onClick={() => { setEditRemoveQImage(true); setEditQImagePreview(null) }}
                   className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
                   style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
                   Remove
@@ -226,9 +243,33 @@ export default function CardsPage() {
             ) : (
               <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
                 style={{ backgroundColor: '#ffffff10' }}>
-                📷 {editRemoveImage ? 'Add new image' : 'Replace image'}
+                📷 {editRemoveQImage ? 'Add image' : (editingCard.question_image_url ? 'Replace image' : 'Add image')}
                 <input type="file" accept="image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f, setEditImageFile, (s) => { setEditImagePreview(s); setEditRemoveImage(false) }) }} />
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setEditQImageFile(f); setEditQImagePreview(URL.createObjectURL(f)); setEditRemoveQImage(false) } }} />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Answer</p>
+            <textarea value={editAnswer} onChange={e => setEditAnswer(e.target.value)} required rows={3}
+              placeholder="Answer"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
+            {editAImagePreview && !editRemoveAImage ? (
+              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
+                <Image src={editAImagePreview} alt="answer image" fill style={{ objectFit: 'cover' }} unoptimized={editAImagePreview.startsWith('blob:')} />
+                <button type="button" onClick={() => { setEditRemoveAImage(true); setEditAImagePreview(null) }}
+                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
+                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#ffffff10' }}>
+                📷 {editRemoveAImage ? 'Add image' : (editingCard.answer_image_url ? 'Replace image' : 'Add image')}
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setEditAImageFile(f); setEditAImagePreview(URL.createObjectURL(f)); setEditRemoveAImage(false) } }} />
               </label>
             )}
           </div>
@@ -273,31 +314,54 @@ export default function CardsPage() {
       {showForm && (
         <form onSubmit={handleAddCard} className="rounded-2xl p-5 mb-6" style={{ backgroundColor: '#1a2e1f' }}>
           <h2 className="font-semibold mb-4">New Card</h2>
-          <textarea placeholder="Question" value={question} onChange={e => setQuestion(e.target.value)}
-            required rows={2}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-3" />
-          <textarea placeholder="Answer" value={answer} onChange={e => setAnswer(e.target.value)}
-            required rows={3}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-3" />
 
-          {/* Image picker */}
-          {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden mb-3" style={{ aspectRatio: '16/9' }}>
-              <Image src={imagePreview} alt="preview" fill style={{ objectFit: 'cover' }} />
-              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }}
-                className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
-                style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                Remove
-              </button>
-            </div>
-          ) : (
-            <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80 mb-3"
-              style={{ backgroundColor: '#ffffff10' }}>
-              📷 Add image (optional)
-              <input type="file" accept="image/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f, setImageFile, setImagePreview) }} />
-            </label>
-          )}
+          <div className="mb-3">
+            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Question</p>
+            <textarea placeholder="Question" value={question} onChange={e => setQuestion(e.target.value)}
+              required rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
+            {qImagePreview ? (
+              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
+                <Image src={qImagePreview} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
+                <button type="button" onClick={() => { setQImageFile(null); setQImagePreview(null) }}
+                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
+                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#ffffff10' }}>
+                📷 Add image (optional)
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setQImageFile(f); setQImagePreview(URL.createObjectURL(f)) } }} />
+              </label>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <p className="text-xs opacity-40 uppercase tracking-widest mb-2">Answer</p>
+            <textarea placeholder="Answer" value={answer} onChange={e => setAnswer(e.target.value)}
+              required rows={3}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-2" />
+            {aImagePreview ? (
+              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
+                <Image src={aImagePreview} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
+                <button type="button" onClick={() => { setAImageFile(null); setAImagePreview(null) }}
+                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
+                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#ffffff10' }}>
+                📷 Add image (optional)
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setAImageFile(f); setAImagePreview(URL.createObjectURL(f)) } }} />
+              </label>
+            )}
+          </div>
 
           {topics.length > 0 && (
             <div className="mb-4">
@@ -345,12 +409,17 @@ export default function CardsPage() {
               .map(tid => topics.find(t => t.id === tid)?.name).filter(Boolean)
             return (
               <div key={card.id} className="rounded-2xl p-5" style={{ backgroundColor: '#1a2e1f' }}>
-                {card.image_url && (
+                {card.question_image_url && (
                   <div className="relative rounded-xl overflow-hidden mb-3" style={{ aspectRatio: '16/9' }}>
-                    <Image src={card.image_url} alt="card" fill style={{ objectFit: 'cover' }} />
+                    <Image src={card.question_image_url} alt="question" fill style={{ objectFit: 'cover' }} />
                   </div>
                 )}
                 <p className="font-medium mb-1">{card.question}</p>
+                {card.answer_image_url && (
+                  <div className="relative rounded-xl overflow-hidden mt-2 mb-2" style={{ aspectRatio: '16/9' }}>
+                    <Image src={card.answer_image_url} alt="answer" fill style={{ objectFit: 'cover' }} />
+                  </div>
+                )}
                 <p className="text-sm opacity-50 mb-3">{card.answer}</p>
                 {topicNames.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
