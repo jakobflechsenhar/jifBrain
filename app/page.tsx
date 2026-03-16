@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
 export default function AuthPage() {
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const router = useRouter()
   const supabase = createClient()
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -24,7 +26,7 @@ export default function AuthPage() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setMessage(error.message)
-      else setMessage('Logged in!')
+      else router.push('/dashboard')
     }
 
     setLoading(false)
