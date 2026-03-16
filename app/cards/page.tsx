@@ -308,7 +308,7 @@ export default function CardsPage() {
         <div className="flex gap-2">
           <button onClick={() => router.push('/generate')}
             className="text-sm font-semibold px-3 py-2 rounded-xl"
-            style={{ backgroundColor: '#1a3d2e', color: '#4ade80' }}>
+            style={{ backgroundColor: '#16a34a', color: '#fff' }}>
             + AI
           </button>
           <button onClick={() => setShowForm(!showForm)}

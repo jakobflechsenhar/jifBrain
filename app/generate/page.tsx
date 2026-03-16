@@ -186,7 +186,7 @@ export default function GeneratePage() {
 
           {/* Cost estimate */}
           {hasInput && (
-            <p className="text-xs opacity-30 text-right mb-3">Estimated cost: {costEstimate}</p>
+            <p className="text-xs text-right mb-3" style={{ color: '#f87171' }}>Estimated cost: {costEstimate}</p>
           )}
 
           {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
