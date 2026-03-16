@@ -20,6 +20,7 @@ type Card = {
 type Topic = {
   id: string
   name: string
+  parent_topic_id: string | null
 }
 
 const DAILY_GOAL = 10
@@ -57,7 +58,7 @@ export default function StudyPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/'); return }
       setUserId(user.id)
-      supabase.from('topics').select('id, name').eq('user_id', user.id).order('name')
+      supabase.from('topics').select('id, name, parent_topic_id').eq('user_id', user.id).order('name')
         .then(({ data }) => {
           setTopics(data ?? [])
           setTopicsLoading(false)
@@ -233,16 +234,35 @@ export default function StudyPage() {
             <p className="text-sm opacity-70 mt-0.5">Random mix from your full deck</p>
           </button>
 
-          {topics.map(t => (
-            <button
-              key={t.id}
-              onClick={() => startSession(t.id)}
-              className="w-full py-4 rounded-2xl text-left px-6 transition-opacity hover:opacity-80"
-              style={{ backgroundColor: '#1a2e1f' }}
-            >
-              <p className="font-semibold">{t.name}</p>
-            </button>
-          ))}
+          {(() => {
+            const parents = topics.filter(t => !t.parent_topic_id)
+            const orphans = topics.filter(t => t.parent_topic_id && !topics.find(p => p.id === t.parent_topic_id))
+            const rows = [...parents, ...orphans]
+            return rows.map(parent => {
+              const children = topics.filter(t => t.parent_topic_id === parent.id)
+              return (
+                <div key={parent.id} className="flex flex-col gap-1">
+                  <button
+                    onClick={() => startSession(parent.id)}
+                    className="w-full py-4 rounded-2xl text-left px-6 transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: '#1a2e1f' }}
+                  >
+                    <p className="font-semibold">{parent.name}</p>
+                  </button>
+                  {children.map(child => (
+                    <button
+                      key={child.id}
+                      onClick={() => startSession(child.id)}
+                      className="w-full py-3 rounded-2xl text-left transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: '#131f16', paddingLeft: '2.25rem', paddingRight: '1.5rem' }}
+                    >
+                      <p className="text-sm opacity-80">{child.name}</p>
+                    </button>
+                  ))}
+                </div>
+              )
+            })
+          })()}
 
           {topics.length === 0 && (
             <p className="text-sm opacity-40 text-center mt-4">No topics yet — you can still study all cards.</p>
