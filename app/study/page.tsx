@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { sm2 } from '@/lib/sm2'
 
@@ -9,6 +10,7 @@ type Card = {
   id: string
   question: string
   answer: string
+  image_url: string | null
   ease_factor: number
   interval_days: number
   repetitions: number
@@ -29,6 +31,8 @@ export default function StudyPage() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null) // null = not chosen yet, 'all' = all topics
   const [topicsLoading, setTopicsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+
+  const [shuffle, setShuffle] = useState(false)
 
   // Session
   const [cards, setCards] = useState<Card[]>([])
@@ -62,7 +66,7 @@ export default function StudyPage() {
 
     let query = supabase
       .from('cards')
-      .select('id, question, answer, ease_factor, interval_days, repetitions')
+      .select('id, question, answer, image_url, ease_factor, interval_days, repetitions')
       .eq('user_id', userId)
       .order('next_review_at')
 
@@ -83,7 +87,8 @@ export default function StudyPage() {
     }
 
     const { data } = await query
-    setCards(data ?? [])
+    const result = data ?? []
+    setCards(shuffle ? result.sort(() => Math.random() - 0.5) : result)
     setCardsLoading(false)
     setIndex(0)
     setReviewed(0)
@@ -297,7 +302,17 @@ export default function StudyPage() {
           <p className="text-xs opacity-30 mb-0.5">{topicLabel}</p>
           <p className="text-sm opacity-40">{index + 1} / {cards.length}</p>
         </div>
-        <div className="w-10" />
+        <button
+          onClick={() => {
+            setShuffle(s => !s)
+            setCards(prev => !shuffle ? [...prev].sort(() => Math.random() - 0.5) : prev)
+          }}
+          className="text-lg px-2 py-1 rounded-lg transition-opacity"
+          style={{ backgroundColor: shuffle ? '#16a34a' : '#ffffff15' }}
+          title="Shuffle"
+        >
+          🔀
+        </button>
       </div>
 
       <div className="w-full h-1.5 rounded-full mb-10" style={{ backgroundColor: '#1a2e1f' }}>
@@ -319,6 +334,11 @@ export default function StudyPage() {
           <p className="text-xl leading-relaxed">
             {flipped ? card.answer : card.question}
           </p>
+          {card.image_url && (
+            <div className="mt-5 relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              <Image src={card.image_url} alt="" fill style={{ objectFit: 'contain' }} unoptimized />
+            </div>
+          )}
         </div>
         {!flipped && (
           <p className="text-sm opacity-30 text-center mt-8">Tap to reveal answer</p>

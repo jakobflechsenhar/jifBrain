@@ -62,7 +62,7 @@ export default function Dashboard() {
       </div>
 
       {/* Streak card */}
-      <div className="rounded-2xl p-6 mb-4" style={{ backgroundColor: '#1a2e1f' }}>
+      <div onClick={() => router.push('/streak')} className="rounded-2xl p-6 mb-4 cursor-pointer active:opacity-80" style={{ backgroundColor: '#1a2e1f' }}>
         <div className="flex items-center gap-3 mb-1">
           <span className="text-3xl">🔥</span>
           <span className="text-4xl font-bold">{stats.streak}</span>

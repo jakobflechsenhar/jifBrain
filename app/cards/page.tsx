@@ -2,18 +2,30 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 
 type Card = {
   id: string
   question: string
   answer: string
+  image_url: string | null
   created_at: string
 }
 
 type Topic = {
   id: string
   name: string
+}
+
+async function uploadImage(file: File, userId: string, cardId: string): Promise<string | null> {
+  const supabase = createClient()
+  const ext = file.name.split('.').pop()
+  const path = `${userId}/${cardId}.${ext}`
+  const { error } = await supabase.storage.from('card-images').upload(path, file, { upsert: true })
+  if (error) return null
+  const { data } = supabase.storage.from('card-images').getPublicUrl(path)
+  return data.publicUrl
 }
 
 export default function CardsPage() {
@@ -27,8 +39,13 @@ export default function CardsPage() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Search
+  const [search, setSearch] = useState('')
 
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -38,9 +55,12 @@ export default function CardsPage() {
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [editTopics, setEditTopics] = useState<string[]>([])
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+  const [editRemoveImage, setEditRemoveImage] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
 
-  // Card topics map: cardId -> topicId[]
+  // Card topics map
   const [cardTopicsMap, setCardTopicsMap] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
@@ -60,7 +80,6 @@ export default function CardsPage() {
     ])
     setCards(cardsData ?? [])
     setTopics(topicsData ?? [])
-
     const map: Record<string, string[]> = {}
     for (const ct of (cardTopicsData ?? [])) {
       if (!map[ct.card_id]) map[ct.card_id] = []
@@ -68,6 +87,11 @@ export default function CardsPage() {
     }
     setCardTopicsMap(map)
     setLoading(false)
+  }
+
+  function handleImagePick(file: File, setFile: (f: File) => void, setPreview: (s: string) => void) {
+    setFile(file)
+    setPreview(URL.createObjectURL(file))
   }
 
   async function handleAddCard(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -87,17 +111,25 @@ export default function CardsPage() {
 
     if (cardError) { setError(cardError.message); setSaving(false); return }
 
+    let imageUrl: string | null = null
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile, user.id, card.id)
+      if (imageUrl) await supabase.from('cards').update({ image_url: imageUrl }).eq('id', card.id)
+    }
+
     if (selectedTopics.length > 0) {
       await supabase.from('card_topics').insert(
         selectedTopics.map(topicId => ({ card_id: card.id, topic_id: topicId }))
       )
     }
 
-    setCards(prev => [card, ...prev])
+    setCards(prev => [{ ...card, image_url: imageUrl }, ...prev])
     setCardTopicsMap(prev => ({ ...prev, [card.id]: selectedTopics }))
     setQuestion('')
     setAnswer('')
     setSelectedTopics([])
+    setImageFile(null)
+    setImagePreview(null)
     setShowForm(false)
     setSaving(false)
   }
@@ -107,6 +139,9 @@ export default function CardsPage() {
     setEditQuestion(card.question)
     setEditAnswer(card.answer)
     setEditTopics(cardTopicsMap[card.id] ?? [])
+    setEditImageFile(null)
+    setEditImagePreview(card.image_url)
+    setEditRemoveImage(false)
   }
 
   async function handleEditCard(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -115,9 +150,17 @@ export default function CardsPage() {
     setEditSaving(true)
 
     const supabase = createClient()
-    await supabase.from('cards').update({ question: editQuestion, answer: editAnswer }).eq('id', editingCard.id)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
-    // Replace card_topics
+    let imageUrl = editRemoveImage ? null : editingCard.image_url
+
+    if (editImageFile) {
+      imageUrl = await uploadImage(editImageFile, user.id, editingCard.id)
+    }
+
+    await supabase.from('cards').update({ question: editQuestion, answer: editAnswer, image_url: imageUrl }).eq('id', editingCard.id)
+
     await supabase.from('card_topics').delete().eq('card_id', editingCard.id)
     if (editTopics.length > 0) {
       await supabase.from('card_topics').insert(
@@ -125,7 +168,10 @@ export default function CardsPage() {
       )
     }
 
-    setCards(prev => prev.map(c => c.id === editingCard.id ? { ...c, question: editQuestion, answer: editAnswer } : c))
+    setCards(prev => prev.map(c => c.id === editingCard.id
+      ? { ...c, question: editQuestion, answer: editAnswer, image_url: imageUrl }
+      : c
+    ))
     setCardTopicsMap(prev => ({ ...prev, [editingCard.id]: editTopics }))
     setEditingCard(null)
     setEditSaving(false)
@@ -148,7 +194,7 @@ export default function CardsPage() {
 
   if (loading) return null
 
-  // Edit modal
+  // Edit screen
   if (editingCard) {
     return (
       <main className="min-h-screen px-6 py-10 max-w-md mx-auto">
@@ -159,22 +205,33 @@ export default function CardsPage() {
         </div>
 
         <form onSubmit={handleEditCard} className="flex flex-col gap-4">
-          <textarea
-            value={editQuestion}
-            onChange={e => setEditQuestion(e.target.value)}
-            required
-            rows={2}
+          <textarea value={editQuestion} onChange={e => setEditQuestion(e.target.value)} required rows={2}
             placeholder="Question"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none"
-          />
-          <textarea
-            value={editAnswer}
-            onChange={e => setEditAnswer(e.target.value)}
-            required
-            rows={3}
+            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none" />
+          <textarea value={editAnswer} onChange={e => setEditAnswer(e.target.value)} required rows={3}
             placeholder="Answer"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none"
-          />
+            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none" />
+
+          {/* Image section */}
+          <div>
+            {editImagePreview && !editRemoveImage ? (
+              <div className="relative rounded-xl overflow-hidden mb-2" style={{ aspectRatio: '16/9' }}>
+                <Image src={editImagePreview} alt="card image" fill style={{ objectFit: 'cover' }} />
+                <button type="button" onClick={() => { setEditRemoveImage(true); setEditImagePreview(null) }}
+                  className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
+                  style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#ffffff10' }}>
+                📷 {editRemoveImage ? 'Add new image' : 'Replace image'}
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f, setEditImageFile, (s) => { setEditImagePreview(s); setEditRemoveImage(false) }) }} />
+              </label>
+            )}
+          </div>
 
           {topics.length > 0 && (
             <div>
@@ -223,6 +280,25 @@ export default function CardsPage() {
             required rows={3}
             className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 resize-none mb-3" />
 
+          {/* Image picker */}
+          {imagePreview ? (
+            <div className="relative rounded-xl overflow-hidden mb-3" style={{ aspectRatio: '16/9' }}>
+              <Image src={imagePreview} alt="preview" fill style={{ objectFit: 'cover' }} />
+              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }}
+                className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs"
+                style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
+                Remove
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer text-sm opacity-50 hover:opacity-80 mb-3"
+              style={{ backgroundColor: '#ffffff10' }}>
+              📷 Add image (optional)
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f, setImageFile, setImagePreview) }} />
+            </label>
+          )}
+
           {topics.length > 0 && (
             <div className="mb-4">
               <p className="text-sm opacity-50 mb-2">Topics</p>
@@ -247,6 +323,12 @@ export default function CardsPage() {
         </form>
       )}
 
+      {cards.length > 0 && (
+        <input type="text" placeholder="Search cards..." value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-green-500 mb-4" />
+      )}
+
       {cards.length === 0 ? (
         <div className="text-center opacity-40 mt-20">
           <p className="text-lg mb-2">No cards yet</p>
@@ -254,12 +336,20 @@ export default function CardsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {cards.map(card => {
+          {cards.filter(card => {
+            if (!search) return true
+            const q = search.toLowerCase()
+            return card.question.toLowerCase().includes(q) || card.answer.toLowerCase().includes(q)
+          }).map(card => {
             const topicNames = (cardTopicsMap[card.id] ?? [])
-              .map(tid => topics.find(t => t.id === tid)?.name)
-              .filter(Boolean)
+              .map(tid => topics.find(t => t.id === tid)?.name).filter(Boolean)
             return (
               <div key={card.id} className="rounded-2xl p-5" style={{ backgroundColor: '#1a2e1f' }}>
+                {card.image_url && (
+                  <div className="relative rounded-xl overflow-hidden mb-3" style={{ aspectRatio: '16/9' }}>
+                    <Image src={card.image_url} alt="card" fill style={{ objectFit: 'cover' }} />
+                  </div>
+                )}
                 <p className="font-medium mb-1">{card.question}</p>
                 <p className="text-sm opacity-50 mb-3">{card.answer}</p>
                 {topicNames.length > 0 && (
@@ -270,30 +360,14 @@ export default function CardsPage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={() => openEdit(card)}
-                    className="px-4 py-1.5 rounded-xl text-sm"
-                    style={{ backgroundColor: '#ffffff10' }}>
-                    Edit
-                  </button>
+                  <button onClick={() => openEdit(card)} className="px-4 py-1.5 rounded-xl text-sm" style={{ backgroundColor: '#ffffff10' }}>Edit</button>
                   {confirmDeleteId === card.id ? (
                     <>
-                      <button onClick={() => handleDeleteCard(card.id)}
-                        className="px-4 py-1.5 rounded-xl text-sm"
-                        style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                        Confirm
-                      </button>
-                      <button onClick={() => setConfirmDeleteId(null)}
-                        className="px-4 py-1.5 rounded-xl text-sm"
-                        style={{ backgroundColor: '#ffffff10' }}>
-                        Cancel
-                      </button>
+                      <button onClick={() => handleDeleteCard(card.id)} className="px-4 py-1.5 rounded-xl text-sm" style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>Confirm</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-1.5 rounded-xl text-sm" style={{ backgroundColor: '#ffffff10' }}>Cancel</button>
                     </>
                   ) : (
-                    <button onClick={() => setConfirmDeleteId(card.id)}
-                      className="px-4 py-1.5 rounded-xl text-sm"
-                      style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>
-                      Delete
-                    </button>
+                    <button onClick={() => setConfirmDeleteId(card.id)} className="px-4 py-1.5 rounded-xl text-sm" style={{ backgroundColor: '#3d1a1a', color: '#f87171' }}>Delete</button>
                   )}
                 </div>
               </div>
