@@ -59,6 +59,7 @@ export default function Dashboard() {
 
       {/* Study Now button */}
       <button
+        onClick={() => router.push('/study')}
         className="w-full py-4 rounded-2xl text-lg font-semibold mb-6 transition-opacity hover:opacity-90"
         style={{ backgroundColor: '#16a34a', color: '#fff' }}
       >
