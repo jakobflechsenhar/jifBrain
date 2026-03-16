@@ -50,6 +50,7 @@ export default function GeneratePage() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
+  const [confirming, setConfirming] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const [cards, setCards] = useState<GeneratedCard[] | null>(null)
@@ -192,13 +193,34 @@ export default function GeneratePage() {
           {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
 
           <button
-            onClick={handleGenerate}
+            onClick={() => setConfirming(true)}
             disabled={generating || !hasInput}
             className="w-full py-4 rounded-2xl font-semibold disabled:opacity-50"
             style={{ backgroundColor: '#16a34a', color: '#fff' }}
           >
             {generating ? 'Generating…' : 'Generate Cards'}
           </button>
+
+          {confirming && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-8" style={{ backgroundColor: '#000000aa' }}>
+              <div className="w-full max-w-md rounded-3xl p-6 flex flex-col gap-4" style={{ backgroundColor: '#1a2e1f' }}>
+                <p className="font-semibold">Confirm generation</p>
+                <p className="text-sm opacity-60">This will use your Anthropic API credits. Estimated cost: <span style={{ color: '#f87171' }}>{costEstimate}</span></p>
+                <div className="flex gap-3">
+                  <button onClick={() => { setConfirming(false); handleGenerate() }}
+                    className="flex-1 py-3 rounded-xl font-semibold"
+                    style={{ backgroundColor: '#16a34a', color: '#fff' }}>
+                    Confirm
+                  </button>
+                  <button onClick={() => setConfirming(false)}
+                    className="flex-1 py-3 rounded-xl font-semibold"
+                    style={{ backgroundColor: '#ffffff15' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
