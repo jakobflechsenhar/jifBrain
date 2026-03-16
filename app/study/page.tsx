@@ -406,7 +406,7 @@ export default function StudyPage() {
           )}
         </div>
         {!flipped && (
-          <p className="text-sm opacity-30 text-center mt-8">Tap or swipe up to reveal</p>
+          <p className="text-sm opacity-30 text-center mt-8">Tap to reveal</p>
         )}
       </div>
 
