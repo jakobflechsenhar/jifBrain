@@ -7,7 +7,10 @@ export async function POST(req: NextRequest) {
   try {
     const { text, images } = await req.json()
 
-    const client = new Anthropic()
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY is not set in environment variables' }, { status: 500 })
+
+    const client = new Anthropic({ apiKey })
 
     const userContent: Anthropic.MessageParam['content'] = []
 
