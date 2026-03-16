@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# jifBrain
 
-## Getting Started
+A personal spaced repetition flashcard app, inspired by Duolingo.
 
-First, run the development server:
+## Live App
 
+**[memorybase-neon.vercel.app](https://memorybase-neon.vercel.app)**
+
+Also installable on iPhone as a PWA: open the link in Safari → Share → Add to Home Screen.
+
+---
+
+## Architecture
+
+**Frontend: Next.js (React)**
+Next.js is a React framework that handles both the UI and server-side logic (API routes) in one codebase. The app is fully client-rendered with a dark theme and green accents, built as a PWA so it installs on iPhone like a native app.
+
+**Backend/Database: Supabase**
+Supabase provides a cloud PostgreSQL database, user authentication (email/password), and file storage for card images — all free at personal scale. Every table has Row Level Security so users can only access their own data. The schema includes: `cards`, `topics`, `card_topics` (many-to-many), `daily_stats`, and `streaks`.
+
+**Hosting: Vercel**
+Auto-deploys from GitHub on every push. Environment variables (Supabase keys, Anthropic API key) are stored securely in the Vercel dashboard.
+
+**Spaced Repetition: SM-2 Algorithm**
+The same algorithm used by Anki. After each card review you rate yourself 👎 / 😐 / 👍 and the algorithm adjusts the card's next review date and difficulty. Implemented in `lib/sm2.ts`.
+
+**Streak System**
+Daily study goal of 10 cards extends your streak. Two freeze credits per week automatically cover missed days (up to 2 days). Visualised in a monthly calendar view at `/streak`.
+
+**AI Card Generation: Claude API (optional)**
+Paste notes or images into the AI Generate page and Claude returns ready-made flashcard pairs to review and save in bulk. Requires an Anthropic API key with credits at console.anthropic.com.
+
+---
+
+## Making Changes
+
+**1. Start the local development server**
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Open [http://localhost:3000](http://localhost:3000) to see the app locally.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**2. Make your changes**
+All pages are in `app/`. Edit the relevant file — the browser auto-updates on save.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**3. Push to deploy**
+```bash
+git add -A
+git commit -m "describe your change"
+git push
+```
+Vercel automatically picks up the push and redeploys. Live within ~1 minute.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Key files**
+- `app/dashboard/page.tsx` — home screen
+- `app/study/page.tsx` — study session
+- `app/cards/page.tsx` — card management
+- `app/topics/page.tsx` — topic management
+- `app/streak/page.tsx` — streak calendar
+- `app/generate/page.tsx` — AI card generation
+- `lib/sm2.ts` — spaced repetition algorithm
+- `lib/supabase.ts` — Supabase client
