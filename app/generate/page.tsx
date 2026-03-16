@@ -78,13 +78,14 @@ export default function GeneratePage() {
       body: JSON.stringify({ text, images }),
     })
 
-    if (!res.ok) {
-      setError('Something went wrong. Try again.')
+    const json = await res.json()
+    if (!res.ok || json.error) {
+      setError(json.error ?? 'Something went wrong. Try again.')
       setGenerating(false)
       return
     }
 
-    const { cards: generated } = await res.json()
+    const { cards: generated } = json
     setCards(generated.map((c: { question: string; answer: string }) => ({ ...c, selected: true })))
     setGenerating(false)
   }

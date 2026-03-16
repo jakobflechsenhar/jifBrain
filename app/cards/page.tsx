@@ -309,7 +309,7 @@ export default function CardsPage() {
           <button onClick={() => router.push('/generate')}
             className="text-sm font-semibold px-3 py-2 rounded-xl"
             style={{ backgroundColor: '#1a3d2e', color: '#4ade80' }}>
-            ✨ AI
+            + AI
           </button>
           <button onClick={() => setShowForm(!showForm)}
             className="text-sm font-semibold px-3 py-2 rounded-xl"
