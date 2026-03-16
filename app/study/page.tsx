@@ -43,6 +43,7 @@ export default function StudyPage() {
   const [reviewed, setReviewed] = useState(0)
   const [goalReached, setGoalReached] = useState(false)
   const [sessionStart] = useState(() => Date.now())
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 })
 
   // Load topics on mount
   useEffect(() => {
@@ -293,6 +294,26 @@ export default function StudyPage() {
     ? 'All Topics'
     : topics.find(t => t.id === selectedTopic)?.name ?? ''
 
+  function handleSwipe(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStart.x
+    const dy = e.changedTouches[0].clientY - touchStart.y
+    const absDx = Math.abs(dx)
+    const absDy = Math.abs(dy)
+
+    if (absDx > 50 && absDx > absDy) {
+      // swipe left → next card, swipe right → previous card
+      if (dx < 0) {
+        setIndex(i => (i + 1 >= cards.length ? 0 : i + 1))
+        setFlipped(false)
+      } else {
+        setIndex(i => (i - 1 < 0 ? cards.length - 1 : i - 1))
+        setFlipped(false)
+      }
+    } else if (absDy > 40 && dy < 0 && absDy > absDx && !flipped) {
+      setFlipped(true) // swipe up → flip
+    }
+  }
+
   return (
     <main className="min-h-screen px-6 py-10 max-w-md mx-auto flex flex-col">
       <div className="flex items-center justify-between mb-8">
@@ -324,9 +345,11 @@ export default function StudyPage() {
       </div>
 
       <div
-        className="flex-1 rounded-3xl p-8 flex flex-col justify-between cursor-pointer"
+        className="flex-1 rounded-3xl p-8 flex flex-col justify-between cursor-pointer select-none"
         style={{ backgroundColor: '#1a2e1f', minHeight: '320px' }}
         onClick={() => !flipped && setFlipped(true)}
+        onTouchStart={e => setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY })}
+        onTouchEnd={handleSwipe}
       >
         <div>
           <p className="text-xs opacity-40 uppercase tracking-widest mb-4">
@@ -342,7 +365,7 @@ export default function StudyPage() {
           )}
         </div>
         {!flipped && (
-          <p className="text-sm opacity-30 text-center mt-8">Tap to reveal answer</p>
+          <p className="text-sm opacity-30 text-center mt-8">Tap or swipe up to reveal</p>
         )}
       </div>
 
