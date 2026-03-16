@@ -45,6 +45,12 @@ export default function StudyPage() {
   const [sessionStart] = useState(() => Date.now())
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 })
 
+  // Quick edit modal
+  const [editOpen, setEditOpen] = useState(false)
+  const [editQuestion, setEditQuestion] = useState('')
+  const [editAnswer, setEditAnswer] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
   // Load topics on mount
   useEffect(() => {
     const supabase = createClient()
@@ -301,53 +307,75 @@ export default function StudyPage() {
     const absDy = Math.abs(dy)
 
     if (absDx > 50 && absDx > absDy) {
-      // swipe left → next card, swipe right → previous card
-      if (dx < 0) {
-        setIndex(i => (i + 1 >= cards.length ? 0 : i + 1))
-        setFlipped(false)
-      } else {
-        setIndex(i => (i - 1 < 0 ? cards.length - 1 : i - 1))
-        setFlipped(false)
-      }
-    } else if (absDy > 40 && dy < 0 && absDy > absDx && !flipped) {
-      setFlipped(true) // swipe up → flip
+      if (dx < 0) { setIndex(i => (i + 1 >= cards.length ? 0 : i + 1)); setFlipped(false) }
+      else { setIndex(i => (i - 1 < 0 ? cards.length - 1 : i - 1)); setFlipped(false) }
+    } else if (absDy > 40 && absDy > absDx) {
+      if (dy < 0 && !flipped) setFlipped(true)   // swipe up → flip
+      else if (dy > 0 && flipped) setFlipped(false) // swipe down → unflip
     }
+  }
+
+  async function handleEditSave() {
+    setEditSaving(true)
+    const supabase = createClient()
+    await supabase.from('cards').update({ question: editQuestion, answer: editAnswer }).eq('id', card.id)
+    setCards(prev => prev.map((c, i) => i === index ? { ...c, question: editQuestion, answer: editAnswer } : c))
+    setEditOpen(false)
+    setEditSaving(false)
   }
 
   return (
     <main className="min-h-screen px-6 py-10 max-w-md mx-auto flex flex-col">
+      {/* Quick edit modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-8" style={{ backgroundColor: '#000000aa' }}>
+          <div className="w-full max-w-md rounded-3xl p-6 flex flex-col gap-4" style={{ backgroundColor: '#1a2e1f' }}>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold">Edit Card</p>
+              <button onClick={() => setEditOpen(false)} className="opacity-40 hover:opacity-70 text-sm">✕</button>
+            </div>
+            <textarea value={editQuestion} onChange={e => setEditQuestion(e.target.value)} rows={2} placeholder="Question"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none resize-none" />
+            <textarea value={editAnswer} onChange={e => setEditAnswer(e.target.value)} rows={3} placeholder="Answer"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none resize-none" />
+            <button onClick={handleEditSave} disabled={editSaving}
+              className="w-full py-3 rounded-xl font-semibold disabled:opacity-50"
+              style={{ backgroundColor: '#16a34a', color: '#fff' }}>
+              {editSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
-        <button onClick={() => setSelectedTopic(null)} className="opacity-50 hover:opacity-80 text-sm">
-          ← Exit
-        </button>
+        <button onClick={() => setSelectedTopic(null)} className="opacity-50 hover:opacity-80 text-sm">← Exit</button>
         <div className="text-center">
           <p className="text-xs opacity-30 mb-0.5">{topicLabel}</p>
           <p className="text-sm opacity-40">{index + 1} / {cards.length}</p>
         </div>
-        <button
-          onClick={() => {
-            setShuffle(s => !s)
-            setCards(prev => !shuffle ? [...prev].sort(() => Math.random() - 0.5) : prev)
-          }}
-          className="text-lg px-2 py-1 rounded-lg transition-opacity"
-          style={{ backgroundColor: shuffle ? '#16a34a' : '#ffffff15' }}
-          title="Shuffle"
-        >
-          🔀
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setEditQuestion(card.question); setEditAnswer(card.answer); setEditOpen(true) }}
+            className="text-sm px-2 py-1 rounded-lg transition-opacity opacity-40 hover:opacity-70"
+            style={{ backgroundColor: '#ffffff15' }}
+          >✏️</button>
+          <button
+            onClick={() => { setShuffle(s => !s); setCards(prev => !shuffle ? [...prev].sort(() => Math.random() - 0.5) : prev) }}
+            className="text-lg px-2 py-1 rounded-lg transition-opacity"
+            style={{ backgroundColor: shuffle ? '#16a34a' : '#ffffff15' }}
+          >🔀</button>
+        </div>
       </div>
 
       <div className="w-full h-1.5 rounded-full mb-10" style={{ backgroundColor: '#1a2e1f' }}>
-        <div
-          className="h-1.5 rounded-full transition-all"
-          style={{ backgroundColor: '#16a34a', width: `${((index + 1) / cards.length) * 100}%` }}
-        />
+        <div className="h-1.5 rounded-full transition-all"
+          style={{ backgroundColor: '#16a34a', width: `${((index + 1) / cards.length) * 100}%` }} />
       </div>
 
       <div
         className="flex-1 rounded-3xl p-8 flex flex-col justify-between cursor-pointer select-none"
         style={{ backgroundColor: '#1a2e1f', minHeight: '320px' }}
-        onClick={() => !flipped && setFlipped(true)}
+        onClick={() => setFlipped(f => !f)}
         onTouchStart={e => setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY })}
         onTouchEnd={handleSwipe}
       >
