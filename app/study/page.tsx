@@ -221,8 +221,7 @@ export default function StudyPage() {
             ← Back
           </button>
         </div>
-        <h1 className="text-2xl font-bold mb-2" style={{ color: '#4ade80' }}>What to study?</h1>
-        <p className="opacity-40 text-sm mb-8">Choose a topic or study everything at once</p>
+        <h1 className="text-2xl font-bold mb-8" style={{ color: '#4ade80' }}>What to study?</h1>
 
         <div className="flex flex-col gap-3">
           <button
