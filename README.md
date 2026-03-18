@@ -25,7 +25,7 @@ Auto-deploys from GitHub on every push. Environment variables (Supabase keys, An
 The same algorithm used by Anki. After each card review you rate 👎 / 😐 / 👍 and the algo adjusts the card's next review date and difficulty. Implemented in `lib/sm2.ts`.
 
 **PWA (Progressive Web App)**
-A `manifest.json` and service worker (`public/sw.js`) make the app installable on iPhone and Android directly from browser, no App Store needed. Gets its own home screen icon, launches fullscreen, and caches assets for basic offline support.
+A `manifest.json` and service worker (`public/sw.js`) make the app installable on iPhone and Android directly from browser, no App Store needed. Gets its own home screen icon, launches fullscreen, and caches assets for offline support.
 
 **Streak System**
 Daily study goal of 10 cards extends your streak. Two freeze credits per week. Visualised in a monthly calendar view at `/streak`.
