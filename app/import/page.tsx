@@ -131,10 +131,6 @@ export default function ImportPage() {
 
           {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
 
-          <div className="mt-8 rounded-2xl p-4" style={{ backgroundColor: '#1a2e1f' }}>
-            <p className="text-xs opacity-40 uppercase tracking-widest mb-3">Expected format</p>
-            <pre className="text-xs opacity-60 leading-relaxed">{`question,answer\nWhat is photosynthesis?,Plants converting light to energy\nCapital of France?,Paris`}</pre>
-          </div>
         </>
       )}
 
