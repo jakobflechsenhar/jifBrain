@@ -311,6 +311,11 @@ export default function CardsPage() {
             style={{ backgroundColor: '#16a34a', color: '#fff' }}>
             + AI
           </button>
+          <button onClick={() => router.push('/import')}
+            className="text-sm font-semibold px-3 py-2 rounded-xl"
+            style={{ backgroundColor: '#16a34a', color: '#fff' }}>
+            + CSV
+          </button>
           <button onClick={() => setShowForm(!showForm)}
             className="text-sm font-semibold px-3 py-2 rounded-xl"
             style={{ backgroundColor: '#16a34a', color: '#fff' }}>
