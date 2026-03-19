@@ -43,7 +43,7 @@ npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to see the app locally.
 
-**2. Make your changes**
+**2. Make changes**
 All pages are in `app/`. Edit the relevant file — the browser auto-updates on save.
 
 **3. Push to deploy**
