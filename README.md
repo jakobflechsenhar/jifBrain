@@ -33,6 +33,8 @@ Daily study goal of 10 cards extends your streak. Two freeze credits per week. V
 **AI Card Generation: Claude API**
 Paste notes or images into the AI Generate page and Claude returns flashcard pairs to review and save in bulk. Requires an Anthropic API key with preloaded credits at console.anthropic.com.
 
+**CSV Import**
+Import cards in bulk by uploading a two-column CSV file on the cards page.
 ---
 
 ## Making Changes
