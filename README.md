@@ -31,7 +31,7 @@ A `manifest.json` and service worker (`public/sw.js`) make the app installable o
 Daily study goal of 10 cards extends your streak. Two freeze credits per week. Visualised in a monthly calendar view at `/streak`.
 
 **AI Card Generation: Claude API**
-Paste notes/images into the AI Generate page and Claude returns flashcard pairs to review and save in bulk. Requires an Anthropic API key with preloade credits at console.anthropic.com.
+Paste notes/images into the AI Generate page and Claude returns flashcard pairs to review and save in bulk. Requires an Anthropic API key with preloaded credits at console.anthropic.com.
 
 **CSV Import**
 Import cards in bulk by uploading a two-column CSV file on the cards page.
