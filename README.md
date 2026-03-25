@@ -13,7 +13,7 @@ Also installable on iPhone as a PWA: open the link in Safari → Share → Add t
 ## Architecture
 
 **Frontend: Next.js (React)**
-Next.js, React framework that handles both the UI and server-side logic (API routes) in one codebase. The app is fully client-rendered with a dark theme and green accents, built as a PWA so it installs on iPhone like a native app.
+Next.js, React framework that handles both the UI and server-side logic in one codebase. The app is fully client-rendered with a dark theme and green accents, built as a PWA so it installs on iPhone like a native app.
 
 **Backend/Database: Supabase**
 A cloud PostgreSQL database, user authentication (email/password), and file storage for card images — all free. Every table has Row Level Security so users can only access their own data. The schema includes: `cards`, `topics`, `card_topics` (many-to-many), `daily_stats`, and `streaks`.
