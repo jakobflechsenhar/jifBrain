@@ -16,7 +16,7 @@ Also installable on iPhone as a PWA: open the link in Safari → Share → Add t
 Next.js, React framework that handles both the UI and server-side logic in one codebase. The app is fully client-rendered with a dark theme and green accents, built as a PWA so it installs on iPhone like a native app.
 
 **Backend/Database: Supabase**
-A cloud PostgreSQL database, user authentication (email+password), and file storage for card images — all free. Every table has Row Level Security so users can only access their own data. The schema includes: `cards`, `topics`, `card_topics` (many-to-many), `daily_stats`, and `streaks`.
+A cloud PostgreSQL database, user authentication (email+password), and file storage for card images — all free. Every table has Row Level Security so users can only access their own data. The schema includes: `cards`, `topics`, `card_topics` (many-2-many), `daily_stats`, and `streaks`.
 
 **Hosting: Vercel**
 Auto-deploys from GitHub on every push. Environment variables (Supabase keys, Anthropic API key) stored securely in Vercel dashboard.
